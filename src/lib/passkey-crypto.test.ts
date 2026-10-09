@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { b64urlToBytes, bytesToB64url, derSigToRaw, sha256, verifyAssertion } from "./passkey-crypto.ts";
+
+function rawToDer(raw: Uint8Array): Uint8Array {
+  const size = raw.length / 2;
+  const encode = (part: Uint8Array) => {
+    let i = 0;
+    while (i < part.length - 1 && part[i] === 0) i += 1;
+    const body = part[i] & 0x80 ? new Uint8Array([0, ...part.slice(i)]) : part.slice(i);
+    const out = new Uint8Array(2 + body.length);
+    out[0] = 0x02;
+    out[1] = body.length;
+    out.set(body, 2);
+    return out;
+  };
+  const r = encode(raw.slice(0, size));
+  const s = encode(raw.slice(size));
+  const body = new Uint8Array(r.length + s.length);
+  body.set(r, 0);
+  body.set(s, r.length);
+  const out = new Uint8Array(2 + body.length);
+  out[0] = 0x30;
+  out[1] = body.length;
+  out.set(body, 2);
+  return out;
+}
+
+test("base64url round trip and DER signature", () => {
+  const raw = new Uint8Array(64);
+  raw[0] = 0x80;
+  raw[32] = 0x01;
+  const der = rawToDer(raw);
+  const back = derSigToRaw(der);
+  assert.equal(bytesToB64url(back), bytesToB64url(raw));
+  assert.deepEqual(b64urlToBytes(bytesToB64url(raw)), raw);
+});
+
+test("verifies an ES256 passkey assertion", async () => {
+  const key = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const spki = new Uint8Array(await crypto.subtle.exportKey("spki", key.publicKey));
+  const challenge = "challenge-value";
+  const origin = "http://localhost:8080";
+  const rpId = "localhost";
+  const clientData = new TextEncoder().encode(JSON.stringify({ type: "webauthn.get", challenge, origin }));
+  const rpHash = await sha256(new TextEncoder().encode(rpId));
+  const auth = new Uint8Array(37);
+  auth.set(rpHash, 0);
+  auth[32] = 0x01;
+  const hash = await sha256(clientData);
+  const signed = new Uint8Array(auth.length + hash.length);
+  signed.set(auth, 0);
+  signed.set(hash, auth.length);
+  const raw = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key.privateKey, signed));
+  const verified = await verifyAssertion({
+    publicKeySpki: spki,
+    algorithm: -7,
+    authenticatorData: auth,
+    clientDataJSON: clientData,
+    signature: rawToDer(raw),
+    challenge,
+    origin,
+    rpId,
+  });
+  assert.equal(verified.signCount, 0);
+});

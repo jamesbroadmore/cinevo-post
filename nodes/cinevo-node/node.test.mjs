@@ -1,0 +1,139 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import test from "node:test";
+
+const root = path.dirname(fileURLToPath(import.meta.url));
+const PORT = 48185;
+
+function start() {
+  const child = spawn(process.execPath, [path.join(root, "index.cjs"), "--no-open"], {
+    env: { ...process.env, CINEVO_NODE_PORT: String(PORT) },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  return child;
+}
+
+async function waitReady(child) {
+  let buf = "";
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("node did not start")), 8000);
+    child.stdout.on("data", (c) => {
+      buf += c.toString();
+      if (buf.includes("Pairing code:") && buf.includes("Cast code:")) {
+        clearTimeout(t);
+        const pair = /Pairing code: ([A-Z0-9-]+)/.exec(buf);
+        const cast = /Cast code: ([A-Z0-9-]+)/.exec(buf);
+        resolve({ pair: pair ? pair[1] : "", cast: cast ? cast[1] : "" });
+      }
+    });
+    child.stderr.on("data", (c) => {
+      buf += c.toString();
+    });
+    child.on("exit", (code) => reject(new Error(`exited ${code}: ${buf}`)));
+  });
+}
+
+test("loopback health, pair, and 401 without bearer", async (t) => {
+  const child = start();
+  t.after(() => child.kill("SIGTERM"));
+  const codes = await waitReady(child);
+  const code = codes.pair;
+  const base = `http://127.0.0.1:${PORT}`;
+
+  const health = await (await fetch(`${base}/health`)).json();
+  assert.equal(health.ok, true);
+  assert.equal(health.loopback, true);
+
+  const denied = await fetch(`${base}/v1/status`);
+  assert.equal(denied.status, 401);
+
+  const bad = await fetch(`${base}/v1/pair`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "NOPE-00" }),
+  });
+  assert.equal(bad.status, 401);
+
+  const pair = await fetch(`${base}/v1/pair`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  assert.equal(pair.status, 200);
+  const session = await pair.json();
+  assert.ok(session.token);
+
+  const status = await fetch(`${base}/v1/status`, {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(status.status, 200);
+  const body = await status.json();
+  assert.ok(body.deviceId);
+  assert.ok(Array.isArray(body.connections));
+  const pairPlain = await fetch(`${base}/v1/pair`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code.replace("-", "") }),
+  });
+  // First pair already rotated the code; a second pair with the old code must fail.
+  assert.equal(pairPlain.status, 401);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cinevo-node-"));
+  const file = path.join(dir, "Demo.Movie.2024.mp4");
+  fs.writeFileSync(file, Buffer.from("CINEVO-FAKE-MP4-CONTENT-0123456789"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const added = await fetch(`${base}/v1/folders`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ path: dir }),
+  });
+  assert.equal(added.status, 200);
+  const listed = await added.json();
+  assert.equal(listed.count, 1);
+  const title = listed.titles[0];
+  assert.ok(title.path);
+  assert.equal(title.year, "2024");
+  assert.equal(title.title, "Demo Movie");
+  assert.match(title.poster, /^data:image\/svg\+xml/);
+  assert.match(decodeURIComponent(title.poster), /Demo Movie/);
+
+  const deniedPlay = await fetch(`${base}/v1/play?path=${encodeURIComponent(title.path)}`);
+  assert.equal(deniedPlay.status, 401);
+
+  const play = await fetch(`${base}/v1/play?path=${encodeURIComponent(title.path)}&token=${session.token}`);
+  assert.equal(play.status, 200);
+  assert.equal(play.headers.get("content-type"), "video/mp4");
+  assert.equal(play.headers.get("accept-ranges"), "bytes");
+  const bodyBytes = Buffer.from(await play.arrayBuffer());
+  assert.equal(bodyBytes.toString(), "CINEVO-FAKE-MP4-CONTENT-0123456789");
+
+  const ranged = await fetch(`${base}/v1/play?path=${encodeURIComponent(title.path)}&token=${session.token}`, {
+    headers: { Range: "bytes=0-5" },
+  });
+  assert.equal(ranged.status, 206);
+  assert.equal(Buffer.from(await ranged.arrayBuffer()).toString(), "CINEVO");
+
+  const deniedCast = await fetch(`${base}/v1/cast`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "NOPE00", type: "pause" }),
+  });
+  assert.equal(deniedCast.status, 401);
+  const cast = await fetch(`${base}/v1/cast`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: codes.cast, type: "pause" }),
+  });
+  assert.equal(cast.status, 200);
+  const polled = await (await fetch(`${base}/v1/receiver/poll?code=${encodeURIComponent(codes.cast)}`)).json();
+  assert.equal(polled.commands[0].type, "pause");
+  const page = await fetch(`${base}/receiver`);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Ready to cast/);
+});
+
