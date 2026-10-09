@@ -25,5 +25,4 @@ function Start() {
   </PublicFrame>;
 }
 
-export default Start;
 
