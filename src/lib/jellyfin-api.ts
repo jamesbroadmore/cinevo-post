@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { z } from "zod";
+import { serverAddressError } from "@/lib/playback-urls";
 import { factsFromJellyfin } from "@/lib/artwork-model";
 
 type JellyfinItem = {
@@ -43,15 +45,35 @@ async function jfFetch(url: string, headers: Record<string, string>, init: Reque
   return data;
 }
 
+const shortString = z.string().trim().min(1).max(512);
+const connectionSchema = z.object({
+  baseUrl: z.string().trim().max(2048),
+  token: shortString,
+  userId: shortString,
+  clientId: z.string().trim().min(1).max(128),
+});
+const connectSchema = z.object({
+  baseUrl: z.string().trim().max(2048),
+  username: z.string().trim().min(1).max(320),
+  password: z.string().max(1024),
+  clientId: z.string().trim().max(128),
+});
+const importSchema = connectionSchema.extend({
+  sourceLabel: z.string().trim().min(1).max(120),
+  sectionKeys: z.array(z.string().trim().min(1).max(128)).max(12),
+});
+
 function normalizeBase(url: string) {
-  return url.trim().replace(/\/$/, "");
+  const normalized = url.trim().replace(/\/$/, "");
+  return serverAddressError(normalized) ? null : normalized;
 }
 
 export const jellyfinConnect = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { baseUrl: string; username: string; password: string; clientId: string }) => input)
+  .validator((input) => connectSchema.parse(input))
   .handler(async ({ data }) => {
     const baseUrl = normalizeBase(data.baseUrl);
+    if (!baseUrl) return { ok: false as const, error: "That Jellyfin server address is not allowed." };
     const deviceId = data.clientId.trim() || "cinevo-web";
     try {
       const body = await jfFetch(
@@ -83,9 +105,10 @@ export const jellyfinConnect = createServerFn({ method: "POST" })
 
 export const jellyfinListSections = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { baseUrl: string; token: string; userId: string; clientId: string }) => input)
+  .validator((input) => connectionSchema.parse(input))
   .handler(async ({ data }) => {
     const baseUrl = normalizeBase(data.baseUrl);
+    if (!baseUrl) return { ok: false as const, error: "That Jellyfin server address is not allowed." };
     try {
       const body = await jfFetch(
         `${baseUrl}/Users/${encodeURIComponent(data.userId)}/Views`,
@@ -114,18 +137,10 @@ export const jellyfinListSections = createServerFn({ method: "POST" })
 
 export const jellyfinImportSections = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(
-    (input: {
-      baseUrl: string;
-      token: string;
-      userId: string;
-      clientId: string;
-      sourceLabel: string;
-      sectionKeys: string[];
-    }) => input,
-  )
+  .validator((input) => importSchema.parse(input))
   .handler(async ({ data }) => {
     const baseUrl = normalizeBase(data.baseUrl);
+    if (!baseUrl) return { ok: false as const, error: "That Jellyfin server address is not allowed." };
     const headers = { "X-Emby-Authorization": authHeader(data.clientId, data.token) };
     const titles: {
       id: string;

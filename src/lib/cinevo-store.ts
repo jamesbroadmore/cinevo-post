@@ -750,12 +750,14 @@ export const useCinevo = create<CinevoState>()(
         party: s.party,
         mood: s.mood,
         nodeUrl: s.nodeUrl,
-        nodeToken: s.nodeToken,
         nodeDevice: s.nodeDevice,
         plexClientId: s.plexClientId,
-        plexToken: s.plexToken,
         plexUser: s.plexUser,
-        plexServers: s.plexServers,
+        plexServers: s.plexServers.map((server) => ({
+          ...server,
+          accessToken: undefined,
+          connections: server.connections.map(({ uri, local, relay }) => ({ uri, local, relay })),
+        })),
         libraryOwner: s.libraryOwner,
         sources: s.sources,
         localTitles: s.localTitles.map((t) => ({
