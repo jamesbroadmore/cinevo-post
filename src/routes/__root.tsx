@@ -1,5 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Rehydrate } from "@/components/cinevo/rehydrate";
@@ -67,6 +68,7 @@ export const Route = createRootRoute({
           <Outlet />
         </AuthProvider>
         <Scripts />
+        <SpeedInsights />
       </body>
     </html>
   ),
