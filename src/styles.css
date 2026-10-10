@@ -2646,6 +2646,13 @@ html[data-theme="paper"] .house-ambient {
 .library-room__section-head > p { max-width: 20rem; margin: 0; color: var(--color-cine-faint); font-size: 0.82rem; text-align: right; }
 .library-room .house-kicker { margin: 0; color: var(--color-cine-cyan); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; }
 .library-room__collection .library-board { min-height: 20rem; }
+.library-room--plex { gap: 1.5rem; }
+.library-room__header--plex { padding-bottom: 1.15rem; }
+.library-room__rails { display: grid; gap: 1.4rem; }
+.library-room__rails .rail { margin: 0; }
+.library-room__rails .rail-head { padding-inline: 0.1rem; }
+.library-room__all { margin-top: 0.5rem; padding-top: 1.5rem; border-top: 1px solid color-mix(in srgb, var(--color-cine-text) 12%, transparent); }
+.library-room__all .library-board { min-height: 20rem; }
 @media (max-width: 720px) {
   .library-room__header, .library-room__section-head { align-items: flex-start; flex-direction: column; }
   .library-room__stats { width: 100%; }
