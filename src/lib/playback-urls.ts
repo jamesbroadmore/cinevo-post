@@ -103,7 +103,6 @@ export function plexStreamTarget(
     "X-Plex-Client-Identifier": client,
     "X-Plex-Platform": "Chrome",
     "X-Plex-Version": "1.0.0",
-    "X-Plex-Token": token,
   });
   if (compatible) {
     params.set("videoCodec", "h264");
@@ -147,7 +146,6 @@ export function jellyfinStreamTarget(
     Static: compatible ? "false" : "true",
     MediaSourceId: id,
     MaxStreamingBitrate: safe ? "8000000" : compatible ? "20000000" : "200000000",
-    api_key: token,
   });
   if (compatible) {
     params.set("VideoCodec", "h264");

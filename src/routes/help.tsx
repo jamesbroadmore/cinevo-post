@@ -24,7 +24,7 @@ function Help() {
       </section>
       <section>
         <h2>Watch</h2>
-        <p>Playback starts with the original file, proxied through CINEVO. If the browser cannot play it, CINEVO asks your Plex or Jellyfin server for an H.264 copy. That conversion uses the hardware you turned on there. CINEVO itself does not transcode. Choose Grid, List, or Hybrid on Movies, TV, and Library, and sort by title, year, or when it was added.</p>
+        <p>Playback starts with the original file, proxied through CINEVO. If the browser cannot play it, CINEVO asks your Plex or Jellyfin server for an H.264/AAC MP4 copy. That conversion uses the hardware you turned on there; CINEVO itself does not transcode. If the server cannot transcode, switch to Original or Safe mode and check the server&apos;s playback limits. Choose Grid, List, or Hybrid on Movies, TV, and Library, and sort by title, year, or when it was added.</p>
       </section>
       <section>
         <h2>On a TV</h2>
