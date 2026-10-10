@@ -227,20 +227,46 @@ function Thumb({ title, className }: { title: Title; className?: string }) {
   );
 }
 
+type RuntimeFilter = "all" | "short" | "medium" | "long";
+
+function runtimeMinutes(value: string) {
+  return Number(String(value || "").match(/\d+/)?.[0] || 0);
+}
+
 export function LibraryBoard({ titles, empty }: { titles: Title[]; empty?: string }) {
   const view = useCinevo((s) => s.prefs.libraryView);
+  const [runtimeFilter, setRuntimeFilter] = useState<RuntimeFilter>("all");
   const sort = useCinevo((s) => s.prefs.librarySort);
   const patchPrefs = useCinevo((s) => s.patchPrefs);
   const openTitle = useCinevo((s) => s.openTitle);
   const progress = useCinevo((s) => s.progress);
-  const ordered = useMemo(() => sortTitles(titles, sort), [titles, sort]);
+  const filtered = useMemo(() => {
+    if (runtimeFilter === "all") return titles;
+    return titles.filter((title) => {
+      const minutes = runtimeMinutes(title.runtime);
+      if (!minutes) return false;
+      if (runtimeFilter === "short") return minutes < 90;
+      if (runtimeFilter === "medium") return minutes >= 90 && minutes <= 150;
+      return minutes > 150;
+    });
+  }, [runtimeFilter, titles]);
+  const ordered = useMemo(() => sortTitles(filtered, sort), [filtered, sort]);
 
   return (
     <div className="library-board">
       {titles.length ? (
         <div className="library-toolbar">
-          <p>{titles.length === 1 ? "1 title" : `${titles.length} titles`}</p>
+          <p>{filtered.length === 1 ? "1 title" : `${filtered.length} titles`} <span className="text-cine-faint">of {titles.length}</span></p>
           <div className="library-toolbar__controls">
+            <label className="library-sort">
+              <span>Length</span>
+              <select aria-label="Filter by video length" value={runtimeFilter} onChange={(event) => setRuntimeFilter(event.target.value as RuntimeFilter)}>
+                <option value="all">All lengths</option>
+                <option value="short">Under 90 min</option>
+                <option value="medium">90–150 min</option>
+                <option value="long">Over 150 min</option>
+              </select>
+            </label>
             <label className="library-sort">
               <span>Sort</span>
               <select
@@ -346,6 +372,9 @@ export function LibraryBoard({ titles, empty }: { titles: Title[]; empty?: strin
       ) : null}
 
       {!titles.length && empty ? <p className="library-empty">{empty}</p> : null}
+      {titles.length > 0 && filtered.length === 0 ? (
+        <p className="library-empty">No videos match this length. Try All lengths.</p>
+      ) : null}
     </div>
   );
 }
