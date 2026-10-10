@@ -4,11 +4,16 @@ import { loadTicket } from "@/lib/playback.server";
 import { serverAddressError } from "@/lib/playback-urls";
 import { getSessionUser } from "@/lib/auth/verify.server";
 
+function bearerFromRequest(request: Request) {
+  const value = request.headers.get("authorization") || "";
+  return value.toLowerCase().startsWith("bearer ") ? value.slice(7).trim() : undefined;
+}
+
 export const Route = createFileRoute("/api/art/$ticket")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const user = await getSessionUser();
+        const user = await getSessionUser(bearerFromRequest(request));
         if (!user) return new Response("Unauthorized", { status: 401 });
         const path = safeArtPath(new URL(request.url).searchParams.get("path") || "");
         if (!path) return new Response("No artwork", { status: 404 });

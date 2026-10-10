@@ -3,6 +3,11 @@ import { loadTicket } from "@/lib/playback.server";
 import { serverAddressError } from "@/lib/playback-urls";
 import { getSessionUser } from "@/lib/auth/verify.server";
 
+function bearerFromRequest(request: Request) {
+  const value = request.headers.get("authorization") || "";
+  return value.toLowerCase().startsWith("bearer ") ? value.slice(7).trim() : undefined;
+}
+
 function isVideoResponse(status: number, type: string) {
   if (status !== 200 && status !== 206) return false;
   if (!type) return true;
@@ -55,7 +60,7 @@ export const Route = createFileRoute("/api/stream/$ticket")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const user = await getSessionUser();
+        const user = await getSessionUser(bearerFromRequest(request));
         if (!user) return new Response("Unauthorized", { status: 401 });
         const ticket = await loadTicket(params.ticket, user.id);
         if (!ticket) return new Response("Playback expired", { status: 410 });
@@ -79,7 +84,7 @@ export const Route = createFileRoute("/api/stream/$ticket")({
         });
       },
       HEAD: async ({ request, params }) => {
-        const user = await getSessionUser();
+        const user = await getSessionUser(bearerFromRequest(request));
         if (!user) return new Response(null, { status: 401 });
         const ticket = await loadTicket(params.ticket, user.id);
         if (!ticket) return new Response(null, { status: 410 });
