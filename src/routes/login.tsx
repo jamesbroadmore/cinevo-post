@@ -280,7 +280,11 @@ function Login() {
                   if (!kept) setError("The passkey matched, but this browser did not keep the sign-in. Reload and try again.");
                 }}
               />
-              {error ? <p className="text-sm text-cine-danger">{error}</p> : null}
+              {error ? (
+                <p className="rounded-lg border border-cine-danger/40 bg-cine-danger/10 px-3 py-2 text-sm text-cine-danger" role="alert" aria-live="polite">
+                  {error}
+                </p>
+              ) : null}
               <p className="login-split">or password</p>
               {mode === "in" ? (
                 <input
