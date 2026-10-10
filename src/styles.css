@@ -71,7 +71,19 @@
   }
   :focus-visible {
     outline: 2px solid var(--color-cine-cyan);
-    outline-offset: 2px;
+    outline-offset: 3px;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 }
 
@@ -2199,6 +2211,25 @@ html[data-theme="paper"] .house-ambient {
   }
   .top-nav__core {
     display: none;
+  }
+  .top-nav__tools {
+    min-width: 0;
+    flex: 1;
+    gap: 0.1rem;
+  }
+  .top-nav__tools .library-switch {
+    min-width: 0;
+    max-width: 8.25rem;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .top-nav__tools .house-search {
+    display: none;
+  }
+  .top-nav__tools .top-nav__icon {
+    flex: 0 0 2.75rem;
   }
   .house-hero {
     min-height: 34dvh;

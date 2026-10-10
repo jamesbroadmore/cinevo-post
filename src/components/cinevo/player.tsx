@@ -105,10 +105,11 @@ export function Player() {
   const [playbackFailed, setPlaybackFailed] = useState(false);
   const [fit, setFit] = useState<PlaybackFit>("original");
   const [fitTitle, setFitTitle] = useState<string | null | undefined>(playingId);
-  if (fitTitle !== playingId) {
+  useEffect(() => {
+    if (fitTitle === playingId) return;
     setFitTitle(playingId);
     setFit("original");
-  }
+  }, [fitTitle, playingId]);
   const [onTv, setOnTv] = useState(false);
   const blob = title ? mediaUrl(title.id) : undefined;
   const file = playbackFailed ? undefined : blob || remoteSrc;
