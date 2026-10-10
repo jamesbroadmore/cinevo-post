@@ -8,7 +8,7 @@ export function isLoopbackUrl(url?: string) {
   }
 }
 
-/** Reject schemes and cloud-metadata hosts. Private LAN addresses stay allowed. */
+/** Reject schemes, ambiguous hosts, and server-side request forgery targets. LAN media servers remain supported. */
 export function serverAddressError(uri: string) {
   let url: URL;
   try {
@@ -17,8 +17,13 @@ export function serverAddressError(uri: string) {
     return "That server address is not allowed.";
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return "That server address is not allowed.";
-  if (url.username || url.password) return "Credentials must not be embedded in the server address.";
+  if (url.username || url.password || url.port && !/^\d{1,5}$/.test(url.port)) {
+    return "That server address is not allowed.";
+  }
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost")) {
+    return "That server address is not allowed.";
+  }
   const blockedHosts = new Set([
     "169.254.169.254",
     "metadata.google.internal",
@@ -27,6 +32,16 @@ export function serverAddressError(uri: string) {
     "fd00:ec2::254",
   ]);
   if (blockedHosts.has(host)) return "That server address is not allowed.";
+  if (host === "::1" || host === "0:0:0:0:0:0:0:1" || host === "0.0.0.0") {
+    return "That server address is not allowed.";
+  }
+  const octets = host.split(".").map(Number);
+  if (octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) {
+    const [a, b] = octets;
+    if (a === 0 || a === 127 || (a === 169 && b === 254) || a >= 224) {
+      return "That server address is not allowed.";
+    }
+  }
   return null;
 }
 
@@ -130,6 +145,7 @@ export function jellyfinStreamTarget(
   const safe = fit === "safe";
   const params = new URLSearchParams({
     Static: compatible ? "false" : "true",
+    MediaSourceId: id,
     MaxStreamingBitrate: safe ? "8000000" : compatible ? "20000000" : "200000000",
     api_key: token,
   });

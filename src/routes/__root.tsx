@@ -1,10 +1,11 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Rehydrate } from "@/components/cinevo/rehydrate";
 import { Pwa } from "@/components/cinevo/pwa";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Logo } from "@/components/cinevo/logo";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "CINEVO";
@@ -68,6 +69,9 @@ export const Route = createRootRoute({
         <AuthProvider>
           <Outlet />
         </AuthProvider>
+        <Link to="/" className="global-brand" aria-label="CINEVO home">
+          <Logo size="sm" tagline={false} />
+        </Link>
         <Scripts />
       </body>
     </html>

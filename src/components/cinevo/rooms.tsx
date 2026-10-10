@@ -414,47 +414,61 @@ export function BrowseRoom({ kind: initialKind = "all" }: { kind?: "all" | "movi
 }
 
 export function SidebarRoom() {
-  const local = useCinevo((s) => s.localTitles);
-  const remote = useCinevo((s) => s.remoteTitles);
-  const yours = [...local, ...remote];
+  const library = useLibrary();
+  const progress = useCinevo((s) => s.progress);
+  const sources = useCinevo((s) => s.sources);
+  const remote = library.filter((title) => title.source === "plex" || title.source === "jellyfin" || title.source === "shared");
+  const continueWatching = library.filter((title) => {
+    const value = progress[title.id];
+    return value != null && value > 0 && value < 100;
+  });
+  const movies = library.filter((title) => title.kind === "movie");
+  const shows = library.filter((title) => title.kind === "series");
+  const recentlyAddedTitles = recentlyAdded(18, library);
+  const yours = library;
   return (
-    <div className="house-page house-page--flow library-room">
-      <header className="library-room__header">
+    <div className="house-page house-page--flow library-room library-room--plex">
+      <header className="library-room__header library-room__header--plex">
         <div>
           <BrandKicker>CINEVO · Library</BrandKicker>
-          <h1>Your library</h1>
-          <p className="lede">
-            Connect Plex, Jellyfin, or folders to bring your collection into one calm place. Playback stays on the
-            server you connected.
-          </p>
+          <h1>What&apos;s on</h1>
+          <p className="lede">Your connected media, organized into a calm, watchable home.</p>
         </div>
         <div className="library-room__stats" aria-label="Library summary">
           <span><b>{yours.length}</b><small>{yours.length === 1 ? "title" : "titles"}</small></span>
-          <span><b>{new Set(yours.map((title) => title.sourceLabel || title.source)).size}</b><small>sources</small></span>
+          <span><b>{sources.length}</b><small>{sources.length === 1 ? "source" : "sources"}</small></span>
         </div>
       </header>
-      <section className="library-room__connect" aria-labelledby="library-connect-heading">
-        <div className="library-room__section-head">
-          <div>
-            <p className="house-kicker">ADD A SOURCE</p>
-            <h2 id="library-connect-heading">Bring your shelves together</h2>
-          </div>
-          <p>Choose a connection below. You can add more than one.</p>
-        </div>
-        <AddLibrary />
-      </section>
       {yours.length ? (
-        <section className="library-room__collection" aria-labelledby="library-collection-heading">
+        <div className="library-room__rails">
+          {continueWatching.length ? <Rail heading="Continue watching" titles={continueWatching} wide /> : null}
+          {remote.length ? <Rail heading="From your servers" titles={remote} wide /> : null}
+          {recentlyAddedTitles.length ? <Rail heading="Recently added" titles={recentlyAddedTitles} /> : null}
+          {movies.length ? <Rail heading="Movies" titles={movies} /> : null}
+          {shows.length ? <Rail heading="TV shows" titles={shows} /> : null}
+          <section className="library-room__all" aria-labelledby="all-library-heading">
+            <div className="library-room__section-head">
+              <div>
+                <p className="house-kicker">YOUR COLLECTION</p>
+                <h2 id="all-library-heading">All titles</h2>
+              </div>
+              <p>Every source, ready to play through CINEVO.</p>
+            </div>
+            <LibraryBoard titles={yours} />
+          </section>
+        </div>
+      ) : (
+        <section className="library-room__connect" aria-labelledby="library-connect-heading">
           <div className="library-room__section-head">
             <div>
-              <p className="house-kicker">YOUR COLLECTION</p>
-              <h2 id="library-collection-heading">Everything in your house</h2>
+              <p className="house-kicker">ADD A SOURCE</p>
+              <h2 id="library-connect-heading">Bring your shelves together</h2>
             </div>
-            <p>Browse, sort, and pick up where you left off.</p>
+            <p>Connect Plex, Jellyfin, or a folder. CINEVO keeps playback on the server you connected.</p>
           </div>
-          <LibraryBoard titles={yours} />
+          <AddLibrary />
         </section>
-      ) : null}
+      )}
     </div>
   );
 }

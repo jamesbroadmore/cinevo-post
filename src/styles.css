@@ -182,6 +182,66 @@ html[data-theme="rose"] {
   --color-cine-play: #ffc1cf;
   --color-cine-play-ink: #2a1018;
 }
+html[data-theme="cobalt"] {
+  --color-cine-bg: #07101f;
+  --color-cine-elevated: #0e1d35;
+  --color-cine-surface: #152b4b;
+  --color-cine-well: #091728;
+  --color-cine-text: #f3f7ff;
+  --color-cine-muted: #c8d7ed;
+  --color-cine-faint: #9bb3d2;
+  --color-cine-border: #2b4d78;
+  --color-cine-line: #3e6595;
+  --color-cine-cyan: #8bb8ff;
+  --color-cine-accent-ink: #07101f;
+  --color-cine-play: #8bb8ff;
+  --color-cine-play-ink: #07101f;
+}
+html[data-theme="infra"] {
+  --color-cine-bg: #180b0d;
+  --color-cine-elevated: #2a1217;
+  --color-cine-surface: #421b22;
+  --color-cine-well: #210c12;
+  --color-cine-text: #fff3ef;
+  --color-cine-muted: #f1cbc3;
+  --color-cine-faint: #d59e98;
+  --color-cine-border: #65303a;
+  --color-cine-line: #7f414d;
+  --color-cine-cyan: #ff8c7a;
+  --color-cine-accent-ink: #260c0f;
+  --color-cine-play: #ff8c7a;
+  --color-cine-play-ink: #260c0f;
+}
+html[data-theme="aperture"] {
+  --color-cine-bg: #0d1518;
+  --color-cine-elevated: #16262a;
+  --color-cine-surface: #20383d;
+  --color-cine-well: #101e22;
+  --color-cine-text: #f2fbfc;
+  --color-cine-muted: #c8dfe1;
+  --color-cine-faint: #9eb9bc;
+  --color-cine-border: #3a5c62;
+  --color-cine-line: #4f777d;
+  --color-cine-cyan: #b9d5d8;
+  --color-cine-accent-ink: #0d1518;
+  --color-cine-play: #b9d5d8;
+  --color-cine-play-ink: #0d1518;
+}
+html[data-theme="velvet"] {
+  --color-cine-bg: #170d18;
+  --color-cine-elevated: #2a152d;
+  --color-cine-surface: #3d2041;
+  --color-cine-well: #211022;
+  --color-cine-text: #fff3fc;
+  --color-cine-muted: #edcfe5;
+  --color-cine-faint: #c6a3be;
+  --color-cine-border: #633a68;
+  --color-cine-line: #7c4c82;
+  --color-cine-cyan: #f0a8d0;
+  --color-cine-accent-ink: #260f27;
+  --color-cine-play: #f0a8d0;
+  --color-cine-play-ink: #260f27;
+}
 html[data-theme="gilt"] {
   --color-cine-bg: #12100c;
   --color-cine-elevated: #262218;
@@ -368,6 +428,10 @@ html[data-theme] .glass-strong {
 .swatch[data-swatch="sage"] { background: #b7f3d4; }
 .swatch[data-swatch="rose"] { background: #ffc1cf; }
 .swatch[data-swatch="gilt"] { background: #f0d7a4; }
+.swatch[data-swatch="cobalt"] { background: #8bb8ff; }
+.swatch[data-swatch="infra"] { background: #ff8c7a; }
+.swatch[data-swatch="aperture"] { background: #b9d5d8; }
+.swatch[data-swatch="velvet"] { background: #f0a8d0; }
 .swatch[data-swatch="day"],
 .swatch[data-swatch="iris"],
 .swatch[data-swatch="paper"] { background: #0c5f72; }
@@ -2412,6 +2476,41 @@ html[data-theme="paper"] .house-ambient {
   height: 16px;
 }
 
+.global-brand {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(200 240 255 / 0.24);
+  border-radius: 999px;
+  background: rgb(6 9 16 / 0.88);
+  color: var(--color-cine-text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(12px);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.global-brand:hover {
+  border-color: var(--color-cine-cyan);
+  transform: translateY(-1px);
+}
+
+.global-brand .brand {
+  gap: 0.45rem;
+}
+
+.global-brand .brand__gem {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.global-brand .brand b {
+  font-size: 0.75rem;
+}
+
 .brand-watermark {
   display: inline-flex;
   align-items: center;
@@ -2547,6 +2646,13 @@ html[data-theme="paper"] .house-ambient {
 .library-room__section-head > p { max-width: 20rem; margin: 0; color: var(--color-cine-faint); font-size: 0.82rem; text-align: right; }
 .library-room .house-kicker { margin: 0; color: var(--color-cine-cyan); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; }
 .library-room__collection .library-board { min-height: 20rem; }
+.library-room--plex { gap: 1.5rem; }
+.library-room__header--plex { padding-bottom: 1.15rem; }
+.library-room__rails { display: grid; gap: 1.4rem; }
+.library-room__rails .rail { margin: 0; }
+.library-room__rails .rail-head { padding-inline: 0.1rem; }
+.library-room__all { margin-top: 0.5rem; padding-top: 1.5rem; border-top: 1px solid color-mix(in srgb, var(--color-cine-text) 12%, transparent); }
+.library-room__all .library-board { min-height: 20rem; }
 @media (max-width: 720px) {
   .library-room__header, .library-room__section-head { align-items: flex-start; flex-direction: column; }
   .library-room__stats { width: 100%; }

@@ -49,7 +49,10 @@ test("loopback and blocked addresses", () => {
   assert.equal(isLoopbackUrl("https://plex.example:32400"), false);
   assert.equal(serverAddressError("file:///etc/passwd"), "That server address is not allowed.");
   assert.equal(serverAddressError("http://169.254.169.254/"), "That server address is not allowed.");
+  assert.equal(serverAddressError("http://127.0.0.1:32400"), "That server address is not allowed.");
+  assert.equal(serverAddressError("http://[::1]:8096"), "That server address is not allowed.");
   assert.equal(serverAddressError("http://192.168.1.20:32400"), null);
+  assert.equal(serverAddressError("http://nas.local:32400"), null);
 });
 
 test("a failed browser play can ask the server for an H.264 copy", () => {

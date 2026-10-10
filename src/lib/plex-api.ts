@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { z } from "zod";
+import { serverAddressError } from "@/lib/playback-urls";
 import {
   parsePlexMetadata,
   parsePlexResources,
   parsePlexSections,
   rankConnections,
-  type PlexServer,
 } from "./plex";
 
 function plexHeaders(clientId: string, token?: string) {
@@ -21,6 +22,24 @@ function plexHeaders(clientId: string, token?: string) {
   };
 }
 
+const clientIdSchema = z.string().trim().min(1).max(128);
+const tokenSchema = z.string().trim().min(1).max(512);
+const serverSchema = z.object({
+  accessToken: tokenSchema.optional(),
+  connections: z.array(z.object({
+    uri: z.string().trim().max(2048),
+    local: z.boolean(),
+    relay: z.boolean(),
+    protocol: z.string().max(16),
+    address: z.string().max(512),
+    port: z.number().int().min(1).max(65535),
+  })).max(32),
+}).passthrough();
+const safeUrl = (value: string) => {
+  const url = value.trim();
+  return serverAddressError(url) ? null : url.replace(/\/$/, "");
+};
+
 async function plexJson(url: string, headers: Record<string, string>, ms = 8000, init: RequestInit = {}): Promise<unknown> {
   const res = await fetch(url, {
     ...init,
@@ -35,9 +54,21 @@ async function plexJson(url: string, headers: Record<string, string>, ms = 8000,
   return data;
 }
 
+const startPinSchema = z.object({ clientId: clientIdSchema });
+const pollPinSchema = z.object({ clientId: clientIdSchema, pinId: z.number().int().positive().max(10_000_000) });
+const listServersSchema = z.object({ clientId: clientIdSchema, token: tokenSchema });
+const openServerSchema = z.object({ clientId: clientIdSchema, token: tokenSchema, server: serverSchema });
+const importSectionsSchema = z.object({
+  clientId: clientIdSchema,
+  token: tokenSchema,
+  uri: z.string().trim().max(2048),
+  sourceLabel: z.string().trim().min(1).max(120),
+  sectionKeys: z.array(z.string().trim().min(1).max(128)).max(12),
+});
+
 export const plexStartPin = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { clientId: string }) => input)
+  .validator((input) => startPinSchema.parse(input))
   .handler(async ({ data }) => {
     const clientId = data.clientId.trim();
     if (!clientId) return { ok: false as const, error: "Missing Plex client id." };
@@ -59,7 +90,7 @@ export const plexStartPin = createServerFn({ method: "POST" })
 
 export const plexPollPin = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { clientId: string; pinId: number }) => input)
+  .validator((input) => pollPinSchema.parse(input))
   .handler(async ({ data }) => {
     try {
       const body = (await plexJson(
@@ -76,7 +107,7 @@ export const plexPollPin = createServerFn({ method: "POST" })
 
 export const plexListServers = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { clientId: string; token: string }) => input)
+  .validator((input) => listServersSchema.parse(input))
   .handler(async ({ data }) => {
     const headers = plexHeaders(data.clientId, data.token);
     try {
@@ -98,10 +129,10 @@ export const plexListServers = createServerFn({ method: "POST" })
 
 export const plexOpenServer = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { clientId: string; token: string; server: PlexServer }) => input)
+  .validator((input) => openServerSchema.parse(input))
   .handler(async ({ data }) => {
     const token = data.server.accessToken || data.token;
-    const ranked = rankConnections(data.server.connections);
+    const ranked = rankConnections(data.server.connections).filter((connection) => !serverAddressError(connection.uri));
     if (!ranked.length) return { ok: false as const, error: "That server has no reachable connections." };
     let last = "Could not reach that Plex server from here.";
     for (const conn of ranked) {
@@ -127,14 +158,16 @@ export const plexOpenServer = createServerFn({ method: "POST" })
 
 export const plexImportSections = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { clientId: string; token: string; uri: string; sourceLabel: string; sectionKeys: string[] }) => input)
+  .validator((input) => importSectionsSchema.parse(input))
   .handler(async ({ data }) => {
+    const baseUrl = safeUrl(data.uri);
+    if (!baseUrl) return { ok: false as const, error: "That Plex server address is not allowed." };
     const headers = { ...plexHeaders(data.clientId, data.token), "X-Plex-Token": data.token };
     const titles: ReturnType<typeof parsePlexMetadata> = [];
     try {
       for (const key of data.sectionKeys.slice(0, 12)) {
         const body = await plexJson(
-          `${data.uri}/library/sections/${encodeURIComponent(key)}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=80`,
+          `${baseUrl}/library/sections/${encodeURIComponent(key)}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=80`,
           headers,
           12000,
         );
@@ -146,7 +179,7 @@ export const plexImportSections = createServerFn({ method: "POST" })
         }
         for (const show of shows.slice(0, 40)) {
           const leaves = await plexJson(
-            `${data.uri}/library/metadata/${encodeURIComponent(show.ratingKey)}/allLeaves?X-Plex-Container-Start=0&X-Plex-Container-Size=200`,
+            `${baseUrl}/library/metadata/${encodeURIComponent(show.ratingKey)}/allLeaves?X-Plex-Container-Start=0&X-Plex-Container-Size=200`,
             headers,
             12000,
           );

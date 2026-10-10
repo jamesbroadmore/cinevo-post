@@ -309,6 +309,10 @@ export const THEMES = [
   { id: "grove", label: "Grove", feel: "Quiet green glass", accent: "#b7f3d4" },
   { id: "rose", label: "Rose", feel: "Dusk rose glass", accent: "#ffc1cf" },
   { id: "gilt", label: "Gilt", feel: "Champagne on charcoal", accent: "#f0d7a4" },
+  { id: "cobalt", label: "Cobalt", feel: "Deep blue projection", accent: "#8bb8ff" },
+  { id: "infra", label: "Infra", feel: "Red-room contrast", accent: "#ff8c7a" },
+  { id: "aperture", label: "Aperture", feel: "Silver lens flare", accent: "#b9d5d8" },
+  { id: "velvet", label: "Velvet", feel: "Plum theatre seats", accent: "#f0a8d0" },
   { id: "day", label: "Day", feel: "Frosted paper", accent: "#0c5f72" },
 ] as const;
 
@@ -320,7 +324,7 @@ export function migrateTheme(id?: string): ThemeId {
   if (id === "violet") return "lilac";
   if (id === "sage") return "grove";
   if (id === "iris" || id === "paper" || id === "day") return "day";
-  if (id === "ember" || id === "rose" || id === "gilt" || id === "ink" || id === "harbor" || id === "lilac" || id === "grove") {
+  if (id === "ember" || id === "rose" || id === "gilt" || id === "cobalt" || id === "infra" || id === "aperture" || id === "velvet" || id === "ink" || id === "harbor" || id === "lilac" || id === "grove") {
     return id;
   }
   return "harbor";

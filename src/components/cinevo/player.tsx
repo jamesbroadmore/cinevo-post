@@ -103,7 +103,7 @@ export function Player() {
   const [remoteErr, setRemoteErr] = useState("");
   const [remotePending, setRemotePending] = useState(false);
   const [playbackFailed, setPlaybackFailed] = useState(false);
-  const [fit, setFit] = useState<PlaybackFit>("original");
+  const [fit, setFit] = useState<PlaybackFit>("compatible");
   const [fitTitle, setFitTitle] = useState<string | null | undefined>(playingId);
   useEffect(() => {
     if (fitTitle === playingId) return;
