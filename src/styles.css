@@ -2476,6 +2476,41 @@ html[data-theme="paper"] .house-ambient {
   height: 16px;
 }
 
+.global-brand {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(200 240 255 / 0.24);
+  border-radius: 999px;
+  background: rgb(6 9 16 / 0.88);
+  color: var(--color-cine-text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(12px);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.global-brand:hover {
+  border-color: var(--color-cine-cyan);
+  transform: translateY(-1px);
+}
+
+.global-brand .brand {
+  gap: 0.45rem;
+}
+
+.global-brand .brand__gem {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.global-brand .brand b {
+  font-size: 0.75rem;
+}
+
 .brand-watermark {
   display: inline-flex;
   align-items: center;
