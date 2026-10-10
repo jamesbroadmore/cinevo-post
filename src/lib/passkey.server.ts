@@ -183,8 +183,22 @@ export async function openDesk() {
   return { secret };
 }
 
+const deskAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function allowDeskRead(secret: string) {
+  const now = Date.now();
+  const current = deskAttempts.get(secret);
+  if (!current || current.resetAt <= now) {
+    deskAttempts.set(secret, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (current.count >= 30) return false;
+  current.count += 1;
+  return true;
+}
+
 export async function readDesk(secret: string) {
-  if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) return { status: "expired" as const };
+  if (!/^[A-Za-z0-9_-]{43}$/.test(secret) || !allowDeskRead(secret)) return { status: "expired" as const };
   const sql = await getSql();
   const rows = await sql<{ token: string }>`
     update cinevo_desk
@@ -200,6 +214,7 @@ export async function readDesk(secret: string) {
 }
 
 export async function approveDesk(request: Request, secret: string) {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) throw new Error("That code expired. Scan a new one.");
   const userId = await userFromRequest(request);
   if (!userId) throw new Error("Sign in on this phone first.");
   const sql = await getSql();

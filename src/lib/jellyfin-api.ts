@@ -31,6 +31,13 @@ function authHeader(deviceId: string, token?: string) {
   return `MediaBrowser ${parts.join(", ")}`;
 }
 
+function safeJellyfinError(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) return fallback;
+  if (/timed out|abort/i.test(error.message)) return "The Jellyfin server took too long to respond.";
+  if (/401|403|unauthorized|forbidden/i.test(error.message)) return "Jellyfin could not verify those details.";
+  return fallback;
+}
+
 async function jfFetch(url: string, headers: Record<string, string>, init: RequestInit = {}, ms = 10000) {
   const res = await fetch(url, {
     ...init,
@@ -98,7 +105,7 @@ export const jellyfinConnect = createServerFn({ method: "POST" })
     } catch (err) {
       return {
         ok: false as const,
-        error: err instanceof Error ? err.message : "Could not reach that Jellyfin library from here.",
+        error: safeJellyfinError(err, "Could not reach that Jellyfin library from here."),
       };
     }
   });
@@ -130,7 +137,7 @@ export const jellyfinListSections = createServerFn({ method: "POST" })
     } catch (err) {
       return {
         ok: false as const,
-        error: err instanceof Error ? err.message : "Could not list Jellyfin libraries.",
+        error: safeJellyfinError(err, "Could not list Jellyfin libraries."),
       };
     }
   });
@@ -200,7 +207,7 @@ export const jellyfinImportSections = createServerFn({ method: "POST" })
     } catch (err) {
       return {
         ok: false as const,
-        error: err instanceof Error ? err.message : "Could not import that Jellyfin library.",
+        error: safeJellyfinError(err, "Could not import that Jellyfin library."),
       };
     }
   });

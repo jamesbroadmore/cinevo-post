@@ -16,7 +16,7 @@ function Privacy() {
       </section>
       <section>
         <h2>Libraries</h2>
-        <p>Folder scans keep names in this browser. Plex and Jellyfin credentials stay with those servers. CINEVO indexes the titles you choose so the house can list them. Playback is proxied. Files are not republished.</p>
+        <p>Folder scans keep names in this browser. When you connect Plex or Jellyfin, CINEVO sends the credentials to your selected server to sign in, index chosen libraries, and start playback. CINEVO stores short-lived, user-scoped playback tickets; files are not republished.</p>
       </section>
       <section>
         <h2>On this device</h2>

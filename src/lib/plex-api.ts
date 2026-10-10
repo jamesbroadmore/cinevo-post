@@ -40,6 +40,13 @@ const safeUrl = (value: string) => {
   return serverAddressError(url) ? null : url.replace(/\/$/, "");
 };
 
+function safePlexError(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) return fallback;
+  if (/timed out|abort/i.test(error.message)) return "The Plex server took too long to respond.";
+  if (/401|403|unauthorized|forbidden/i.test(error.message)) return "Plex could not verify those details.";
+  return fallback;
+}
+
 async function plexJson(url: string, headers: Record<string, string>, ms = 8000, init: RequestInit = {}): Promise<unknown> {
   const res = await fetch(url, {
     ...init,
@@ -84,7 +91,7 @@ export const plexStartPin = createServerFn({ method: "POST" })
       if (!id || !code) return { ok: false as const, error: "Plex did not issue a sign-in pin." };
       return { ok: true as const, id, code };
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Could not start Plex sign-in." };
+      return { ok: false as const, error: safePlexError(err, "Could not start Plex sign-in.") };
     }
   });
 
@@ -101,7 +108,7 @@ export const plexPollPin = createServerFn({ method: "POST" })
       const token = typeof body.authToken === "string" ? body.authToken : "";
       return { ok: true as const, token: token || null };
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Plex sign-in timed out." };
+      return { ok: false as const, error: safePlexError(err, "Plex sign-in timed out.") };
     }
   });
 
@@ -123,7 +130,7 @@ export const plexListServers = createServerFn({ method: "POST" })
         servers,
       };
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Could not list Plex servers." };
+      return { ok: false as const, error: safePlexError(err, "Could not list Plex servers.") };
     }
   });
 
@@ -150,7 +157,7 @@ export const plexOpenServer = createServerFn({ method: "POST" })
           sections,
         };
       } catch (err) {
-        last = err instanceof Error ? err.message : last;
+        last = safePlexError(err, last);
       }
     }
     return { ok: false as const, error: last };
@@ -190,6 +197,6 @@ export const plexImportSections = createServerFn({ method: "POST" })
       const unique = titles.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
       return { ok: true as const, titles: unique };
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Could not import that Plex library." };
+      return { ok: false as const, error: safePlexError(err, "Could not import that Plex library.") };
     }
   });
